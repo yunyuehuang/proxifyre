@@ -14,6 +14,7 @@ ProxiFyre transparently routes selected Windows applications—or all unmatched 
 
 - Route applications that have no native proxy support, including UDP and QUIC traffic.
 - Use multiple ordered SOCKS5 proxies with per-application rules and exclusions.
+- Combine process and protocol rules with [DNS-learned exact domains and domain suffixes](docs/domain-routing.md).
 - Proxy IPv4 and IPv6 destinations over TCP, UDP, or both.
 - Choose normal SOCKS5 or TLS transport, with certificate validation and optional pinning.
 - Keep local network traffic direct with LAN bypass.

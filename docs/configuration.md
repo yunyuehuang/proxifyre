@@ -62,7 +62,7 @@ Process ownership lookup is best effort for a standard user. ProxiFyre can route
 | --- | --- |
 | `logLevel` | `Error`, `Warning`, `Info`, `Debug`, or `All`. Missing or unsupported values fall back to `Info`. |
 | `bypassLan` | When `true`, supported local IPv4 ranges remain direct. Default: `false`. |
-| `proxies` | One or more ordered routing rules. The first application match supporting the current TCP/UDP protocol wins. |
+| `proxies` | One or more ordered routing rules. The first application and domain match supporting the current TCP/UDP protocol wins. |
 | `excludes` | Process names or paths that always bypass proxy routing. |
 | `dns` | Optional global DNS routing. Omitted means `Direct`. See [DNS routing](#dns-routing). |
 
@@ -72,6 +72,8 @@ Process ownership lookup is best effort for a standard user. ProxiFyre can route
 | --- | --- |
 | `id` | Optional stable identifier used to reference this rule's proxy, for example from `dns.proxyId`. 1–64 letters, digits, `-`, `_`, or `.`; unique, case-insensitive. Unlike the rule position it survives reordering. An empty or whitespace id means no id. An invalid or duplicate id is an error only when `dns.proxyId` in `Proxy` mode refers to it; otherwise it is reported as a warning, has no effect, and is removed when the GUI saves the configuration. Two exceptions: every rule with an id that `dns.proxyId` names keeps it, and of rules sharing any other valid id, the first keeps it. |
 | `appNames` | Application names or paths matched by this rule. An explicit empty string is the catch-all. |
+| `domains` | Optional exact domain names, learned from DNS answers. Case-insensitive; at most 256 entries. See [domain routing](domain-routing.md). |
+| `domainSuffixes` | Optional domain suffixes, including the root and all subdomains. At most 256 entries. Either domain list can match; both omitted or empty means any destination. |
 | `socks5ProxyEndpoint` | SOCKS5 hostname or IPv4 address plus port, for example `proxy.example.com:1080`. |
 | `username`, `password` | Optional SOCKS5 authentication. Configure both or neither. |
 | `socks5Transport` | `TCP` for normal SOCKS5 or `TLS` for SOCKS5-over-TLS. Default: `TCP`. |
@@ -83,7 +85,7 @@ Process ownership lookup is best effort for a standard user. ProxiFyre can route
 
 ## Application matching and rule order
 
-Routing rules are evaluated from top to bottom. A rule must match the application and support the current TCP/UDP protocol. A protocol mismatch continues to the next rule; the first match supporting that protocol wins. If none supports it, the traffic remains direct.
+Routing rules are evaluated from top to bottom. A rule must match the application, support the current TCP/UDP protocol, and match any configured domain conditions. A protocol or domain mismatch continues to the next rule. The first match wins. If no rule matches, the traffic remains direct. Place domain-specific rules before rules with no domain conditions; see [domain routing](domain-routing.md) for DNS learning, fallback, and shared-IP limitations.
 
 - A value containing neither `/` nor `\` matches the whole executable name, case-insensitively. `firefox` and `firefox.exe` match `firefox.exe`; `firefox` does not match `NewFirefox.exe`.
 - A value containing `/` or `\` is matched as a substring of the process's full path. This is useful for applications installed beneath a variable package directory.

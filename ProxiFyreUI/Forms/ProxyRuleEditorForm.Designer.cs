@@ -29,6 +29,7 @@ namespace ProxiFyreUI.Forms
         private System.Windows.Forms.CheckBox ipv4CheckBox;
         private System.Windows.Forms.CheckBox ipv6CheckBox;
         private System.Windows.Forms.Label trafficNoteLabel;
+        private System.Windows.Forms.Button domainsButton;
         private System.Windows.Forms.GroupBox transportGroupBox;
         private System.Windows.Forms.Label transportLabel;
         private System.Windows.Forms.ComboBox transportComboBox;
@@ -73,6 +74,7 @@ namespace ProxiFyreUI.Forms
             this.hostTextBox = new System.Windows.Forms.TextBox();
             this.hostLabel = new System.Windows.Forms.Label();
             this.trafficGroupBox = new System.Windows.Forms.GroupBox();
+            this.domainsButton = new System.Windows.Forms.Button();
             this.trafficNoteLabel = new System.Windows.Forms.Label();
             this.ipv6CheckBox = new System.Windows.Forms.CheckBox();
             this.ipv4CheckBox = new System.Windows.Forms.CheckBox();
@@ -256,6 +258,12 @@ namespace ProxiFyreUI.Forms
             this.showPasswordCheckBox.CheckedChanged += new System.EventHandler(this.ShowPasswordCheckBox_CheckedChanged);
             this.trafficGroupBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) | System.Windows.Forms.AnchorStyles.Right)));
             this.trafficGroupBox.Controls.Add(this.trafficNoteLabel);
+            this.trafficGroupBox.Controls.Add(this.domainsButton);
+            this.domainsButton.Name = "domainsButton";
+            this.domainsButton.Text = "Domains...";
+            this.domainsButton.Location = new System.Drawing.Point(313, 21);
+            this.domainsButton.Size = new System.Drawing.Size(105, 27);
+            this.domainsButton.Click += new System.EventHandler(this.DomainsButton_Click);
             this.trafficGroupBox.Controls.Add(this.ipv6CheckBox);
             this.trafficGroupBox.Controls.Add(this.ipv4CheckBox);
             this.trafficGroupBox.Controls.Add(this.udpCheckBox);
@@ -298,11 +306,11 @@ namespace ProxiFyreUI.Forms
             this.ipv6CheckBox.Text = "IPv6";
             this.ipv6CheckBox.UseVisualStyleBackColor = true;
             this.ipv6CheckBox.CheckedChanged += new System.EventHandler(this.AddressFamilySelectionChanged);
-            this.trafficNoteLabel.AutoSize = true;
+            this.trafficNoteLabel.AutoSize = false;
             this.trafficNoteLabel.ForeColor = System.Drawing.SystemColors.GrayText;
-            this.trafficNoteLabel.Location = new System.Drawing.Point(313, 26);
+            this.trafficNoteLabel.Location = new System.Drawing.Point(430, 26);
             this.trafficNoteLabel.Name = "trafficNoteLabel";
-            this.trafficNoteLabel.Size = new System.Drawing.Size(481, 15);
+            this.trafficNoteLabel.Size = new System.Drawing.Size(368, 32);
             this.trafficNoteLabel.TabIndex = 4;
             this.trafficNoteLabel.Text = "TLS protects the SOCKS5 control connection; it does not encrypt UDP payload datagrams.";
             this.transportGroupBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) | System.Windows.Forms.AnchorStyles.Right)));

@@ -31,6 +31,7 @@ namespace ProxiFyreUI.Forms
         private System.Windows.Forms.DataGridViewTextBoxColumn endpointColumn;
         private System.Windows.Forms.DataGridViewTextBoxColumn authenticationColumn;
         private System.Windows.Forms.DataGridViewTextBoxColumn transportColumn;
+        private System.Windows.Forms.DataGridViewTextBoxColumn domainsColumn;
         private System.Windows.Forms.DataGridViewTextBoxColumn protocolsColumn;
         private System.Windows.Forms.DataGridViewTextBoxColumn addressFamiliesColumn;
         private System.Windows.Forms.DataGridViewTextBoxColumn warningsColumn;
@@ -148,6 +149,7 @@ namespace ProxiFyreUI.Forms
             this.endpointColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.authenticationColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.transportColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.domainsColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.protocolsColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.addressFamiliesColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.warningsColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
@@ -403,7 +405,8 @@ namespace ProxiFyreUI.Forms
             this.routingGrid.AutoSizeRowsMode = System.Windows.Forms.DataGridViewAutoSizeRowsMode.AllCells;
             this.routingGrid.BackgroundColor = System.Drawing.SystemColors.Window;
             this.routingGrid.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.routingGrid.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] { this.orderColumn, this.applicationsColumn, this.endpointColumn, this.authenticationColumn, this.transportColumn, this.protocolsColumn, this.addressFamiliesColumn, this.warningsColumn });
+            this.routingGrid.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] { this.orderColumn, this.applicationsColumn, this.endpointColumn, this.authenticationColumn, this.transportColumn, this.protocolsColumn, this.addressFamiliesColumn, this.domainsColumn, this.warningsColumn });
+            this.domainsColumn.HeaderText = "Domains"; this.domainsColumn.Name = "domainsColumn"; this.domainsColumn.ReadOnly = true; this.domainsColumn.Width = 170;
             this.routingGrid.Dock = System.Windows.Forms.DockStyle.Fill;
             this.routingGrid.Location = new System.Drawing.Point(8, 47);
             this.routingGrid.MultiSelect = false;

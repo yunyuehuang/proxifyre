@@ -85,6 +85,7 @@
     <Compile Include="ConfigurationValidatorTests.cs" />
     <Compile Include="DiagnosticsBuilderTests.cs" />
     <Compile Include="DnsConfigurationTests.cs" />
+    <Compile Include="DomainRulesTests.cs" />
     <Compile Include="EngineLocatorTests.cs" />
     <Compile Include="EngineCommandLinePolicyTests.cs" />
     <Compile Include="HighDpiLayoutTests.cs" />

@@ -361,6 +361,7 @@ namespace Socksifier
         /// upstream DNS server; null or empty keeps the original destination.</param>
         /// <returns>True when the configuration was applied as requested.</returns>
         bool SetDnsRouting(DnsRoutingModeEnum mode, IntPtr proxy, String^ serverOverride);
+        bool SetProxyDomains(IntPtr proxy, array<String^>^ domains, array<String^>^ suffixes);
 
         /// <summary>
         /// Gets or sets the interval (in milliseconds) for log event notifications.

@@ -71,6 +71,12 @@ namespace ProxiFyre.Configuration
         [JsonProperty("appNames")]
         public List<string> AppNames { get; set; }
 
+        [JsonProperty("domains", NullValueHandling = NullValueHandling.Ignore)]
+        public List<string> Domains { get; set; }
+
+        [JsonProperty("domainSuffixes", NullValueHandling = NullValueHandling.Ignore)]
+        public List<string> DomainSuffixes { get; set; }
+
         [JsonProperty("socks5ProxyEndpoint", NullValueHandling = NullValueHandling.Ignore)]
         public string Socks5ProxyEndpoint { get; set; }
 

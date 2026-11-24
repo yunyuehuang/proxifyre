@@ -128,6 +128,8 @@ public:
         const std::wstring& process_name,
         LONG_PTR proxy_id) const;
     [[nodiscard]] bool exclude_process_name(const std::wstring& process_name) const;
+    [[nodiscard]] bool set_proxy_domains(LONG_PTR proxy_id, const std::vector<std::string>& domains,
+        const std::vector<std::string>& suffixes) const;
 
     /**
      * @brief Configures global DNS routing. Must be called before start().

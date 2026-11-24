@@ -369,12 +369,19 @@ IntPtr Socksifier::Socksifier::AddSocks5Proxy(String^ endpoint, String^ username
     return AddSocks5Proxy(endpoint, username, password, protocols, SupportedAddressFamiliesEnum::BOTH, start);
 }
 
-/// <summary>
-/// Associates a process name with a specific proxy instance.
-/// </summary>
-/// <param name="processName">The process name to associate.</param>
-/// <param name="proxy">The proxy handle.</param>
-/// <returns>True if association was successful, otherwise false.</returns>
+/// <summary>Sets normalized ASCII domain conditions before the router starts.</summary>
+bool Socksifier::Socksifier::SetProxyDomains(IntPtr proxy, array<String^>^ domains, array<String^>^ suffixes)
+{
+    if (!unmanaged_ptr_) return false;
+    std::vector<std::string> exact, suffix;
+    if (domains != nullptr)
+        for each (String^ value in domains) exact.push_back(msclr::interop::marshal_as<std::string>(value));
+    if (suffixes != nullptr)
+        for each (String^ value in suffixes) suffix.push_back(msclr::interop::marshal_as<std::string>(value));
+    return unmanaged_ptr_->set_proxy_domains(static_cast<LONG_PTR>(proxy.ToInt64()), exact, suffix);
+}
+
+/// <summary>Associates a process name with a specific proxy instance.</summary>
 bool Socksifier::Socksifier::AssociateProcessNameToProxy(String^ processName, IntPtr proxy)
 {
     if (!unmanaged_ptr_)

@@ -20,6 +20,8 @@ namespace ProxiFyreUI.Forms
         private bool _confirmedInvalidCertificate;
         private string[] _unsupportedProtocols = new string[0];
         private string[] _unsupportedAddressFamilies = new string[0];
+        private List<string> _domains;
+        private List<string> _domainSuffixes;
 
         public ProxyRuleEditorForm(ProxyRule rule, int ruleIndex, int ruleCount)
         {
@@ -48,6 +50,9 @@ namespace ProxiFyreUI.Forms
         private void LoadRule(ProxyRule rule)
         {
             ResultRule = _serializer.CloneRule(rule);
+            _domains = rule.Domains == null ? null : new List<string>(rule.Domains);
+            _domainSuffixes = rule.DomainSuffixes == null ? null : new List<string>(rule.DomainSuffixes);
+            UpdateDomainSummary();
             var applications = rule.AppNames ?? new List<string>();
             catchAllCheckBox.Checked = applications.Any(value => value != null && value.Length == 0);
             foreach (var application in applications.Where(value => !string.IsNullOrEmpty(value)))
@@ -106,6 +111,8 @@ namespace ProxiFyreUI.Forms
             if (catchAllCheckBox.Checked)
                 candidate.AppNames.Add(string.Empty);
             candidate.Socks5ProxyEndpoint = hostTextBox.Text.Trim() + ":" + decimal.ToInt32(portNumeric.Value);
+            candidate.Domains = _domains == null ? null : new List<string>(_domains);
+            candidate.DomainSuffixes = _domainSuffixes == null ? null : new List<string>(_domainSuffixes);
             candidate.Username = usernameTextBox.Text;
             candidate.Password = passwordTextBox.Text;
             candidate.Socks5Transport = transportComboBox.SelectedIndex == 1 ? "TLS" :
@@ -120,6 +127,24 @@ namespace ProxiFyreUI.Forms
             if (ipv4CheckBox.Checked) candidate.SupportedAddressFamilies.Add("IPv4");
             if (ipv6CheckBox.Checked) candidate.SupportedAddressFamilies.Add("IPv6");
             return candidate;
+        }
+
+        private void DomainsButton_Click(object sender, EventArgs e)
+        {
+            using (var dialog = new DomainRuleEditorForm(_domains, _domainSuffixes))
+            {
+                if (dialog.ShowDialog(this) != DialogResult.OK) return;
+                _domains = dialog.Domains;
+                _domainSuffixes = dialog.DomainSuffixes;
+                UpdateDomainSummary();
+                ValidateInput();
+            }
+        }
+
+        private void UpdateDomainSummary()
+        {
+            trafficNoteLabel.Text = "Domains: " + (_domains?.Count ?? 0) + " exact, " +
+                (_domainSuffixes?.Count ?? 0) + " suffixes. Empty = all destinations.";
         }
 
         private void ValidateInput()

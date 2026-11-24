@@ -76,7 +76,8 @@ namespace ProxiFyre.Tests
             {
                 new InputDialog("Test", "Value:"),
                 new ProcessPickerForm(),
-                new ProxyRuleEditorForm(null, 0, 1)
+                new ProxyRuleEditorForm(null, 0, 1),
+                new DomainRuleEditorForm(null, null)
             };
             foreach (var form in forms)
             {

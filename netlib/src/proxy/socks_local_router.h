@@ -2,6 +2,7 @@
 
 #include "process_routing_policy.h"
 #include "dns_routing_policy.h"
+#include "domain_routing.h"
 
 namespace proxy
 {
@@ -374,6 +375,10 @@ namespace proxy
          * @brief Maps proxy indexes to their corresponding process names (sorted by proxy ID).
          */
         std::multimap<size_t, std::wstring> proxy_to_names_;
+        std::unordered_map<size_t, domain_patterns> proxy_domains_;
+        std::atomic_bool domain_routing_enabled_{ false };
+        dns_domain_cache domain_cache_;
+        domain_flow_cache<proxy_port_result> domain_flows_;
 
         /**
          * @brief A list of excluded process names.
@@ -741,9 +746,14 @@ namespace proxy
 
             // Initialize packet filter
             packet_filter_ = std::make_unique<packet_filter>(
-                nullptr,
                 [this](HANDLE, netlib::ndisapi::intermediate_buffer& buffer)
                 {
+                    observe_dns_packet(buffer, false);
+                    return packet_filter::packet_action{ packet_filter::packet_action::action_type::pass };
+                },
+                [this](HANDLE, netlib::ndisapi::intermediate_buffer& buffer)
+                {
+                    observe_dns_packet(buffer, true);
                     auto* const ethernet_header = reinterpret_cast<ether_header_ptr>(buffer.m_IBuffer);
                     const auto destination_mac = net::mac_address(ethernet_header->h_dest);
                     const auto ether_type = ntohs(ethernet_header->h_proto);
@@ -816,6 +826,14 @@ namespace proxy
 
             // Add the ICMP filter to the static filters list
             static_filters_.add_filter_back(icmp_filter);
+            // Only the DNS observation filters inserted at start() should capture
+            // inbound data; unrelated replies stay on the driver's PASS path.
+            ndisapi::filter<net::ip_address_v4> incoming_v4;
+            incoming_v4.set_direction(ndisapi::direction_t::in).set_action(ndisapi::action_t::pass);
+            static_filters_.add_filter_back(incoming_v4);
+            ndisapi::filter<net::ip_address_v6> incoming_v6;
+            incoming_v6.set_direction(ndisapi::direction_t::in).set_action(ndisapi::action_t::pass);
+            static_filters_.add_filter_back(incoming_v6);
         }
 
         /**
@@ -944,6 +962,9 @@ namespace proxy
                 NETLIB_LOG(log_level::error, "Filter is already active!");
                 return false;
             }
+
+            domain_cache_.clear();
+            domain_flows_.clear();
 
             // Reset resolver-exit signal on every start so a previous
             // stop()/start() cycle does not leave the new resolver thread
@@ -1927,6 +1948,19 @@ namespace proxy
             return true;
         }
 
+        // Domain conditions are configured per proxy before the router starts.
+        bool set_proxy_domains(const size_t proxy_id, domain_patterns patterns)
+        {
+            std::scoped_lock lifecycle_lock(lifecycle_mutex_);
+            if (is_active_.load()) return false;
+            std::unique_lock lock(lock_);
+            if (proxy_id >= proxy_servers_.size()) return false;
+            proxy_domains_.insert_or_assign(proxy_id, std::move(patterns));
+            domain_routing_enabled_.store(std::ranges::any_of(proxy_domains_,
+                [](const auto& item) { return !item.second.empty(); }));
+            return true;
+        }
+
         /**
          * @brief Configures the global DNS routing policy. Must be called before start().
          *
@@ -2253,14 +2287,74 @@ namespace proxy
          * select_proxy_port() for the outcomes.
          */
         template <owner_transport Transport, owner_family Family>
-        proxy_port_result get_proxy_port(const std::shared_ptr<iphelper::network_process>& process)
+        proxy_port_result get_proxy_port(const std::shared_ptr<iphelper::network_process>& process,
+            const std::vector<std::string>& domains = {})
         {
             if (!process) return {};
 
             std::shared_lock lock(lock_);
 
             return select_proxy_port(match_rules(), *process,
-                [this](const size_t proxy_id) { return route_target<Transport, Family>(proxy_id); });
+                [this, &domains](const size_t proxy_id)
+                {
+                    auto target = route_target<Transport, Family>(proxy_id);
+                    const auto patterns = proxy_domains_.find(proxy_id);
+                    target.destination_supported = patterns == proxy_domains_.end() || patterns->second.matches(domains);
+                    return target;
+                });
+        }
+
+        template <typename AddrT>
+        static std::string domain_key(const AddrT& address)
+        {
+            if constexpr (std::is_same_v<AddrT, net::ip_address_v4>)
+            {
+                const in_addr value = address;
+                return domain_address_key(&value, sizeof(value));
+            }
+            else
+            {
+                const in6_addr value = address;
+                return domain_address_key(&value, sizeof(value));
+            }
+        }
+
+        template <owner_transport Transport, owner_family Family, typename AddrT>
+        proxy_port_result get_flow_proxy_port(const std::shared_ptr<iphelper::network_process>& process,
+            const AddrT& source, const AddrT& destination, uint16_t source_port, uint16_t destination_port,
+            uint8_t flags = 0, uint32_t sequence = 0)
+        {
+            if (!process) return {};
+            if (!domain_routing_enabled_.load())
+                return route_owner<Transport, Family>(*process,
+                    [&] { return get_proxy_port<Transport, Family>(process); });
+            const auto destination_key = domain_key(destination);
+            std::string key = domain_key(source) + destination_key;
+            key.append(reinterpret_cast<const char*>(&source_port), sizeof(source_port));
+            key.append(reinterpret_cast<const char*>(&destination_port), sizeof(destination_port));
+            key.append(reinterpret_cast<const char*>(&process->id), sizeof(process->id));
+            key += Transport == owner_transport::tcp ? 'T' : 'U';
+            // Do not reuse owner.bypass_udp: an unconnected UDP socket can contact many
+            // domains through different proxies from the very same local endpoint.
+            return domain_flows_.choose(key, Transport == owner_transport::tcp,
+                (flags & (TH_SYN | TH_ACK)) == TH_SYN, sequence,
+                [&]
+                {
+                    return get_proxy_port<Transport, Family>(process, domain_cache_.lookup(destination_key));
+                }, proxy_port_result{ proxy_port_action::block, 0 });
+        }
+
+        void observe_dns_packet(const netlib::ndisapi::intermediate_buffer& buffer, bool query)
+        {
+            if (!domain_routing_enabled_.load()) return;
+            try
+            {
+                domain_cache_.observe_frame(reinterpret_cast<const uint8_t*>(buffer.m_IBuffer), buffer.m_Length, query);
+            }
+            catch (const std::exception&)
+            {
+                // Observation is best effort. Never interrupt delivery of the actual DNS packet.
+            }
         }
 
         /**
@@ -2521,6 +2615,7 @@ namespace proxy
             switch (decide_tcp_listener_segment(to_listener_segment_outcome(result)))
             {
             case listener_segment_action::revert:
+                observe_dns_packet(buffer, false);
                 log_packet_to_pcap(buffer);
                 return packet_filter::packet_action{ packet_filter::packet_action::action_type::revert };
             case listener_segment_action::drop_quietly:
@@ -3075,6 +3170,23 @@ namespace proxy
 
             remove_dns_filters();
 
+            if (domain_routing_enabled_.load())
+            {
+                const auto add_observer = [this](auto filter, uint8_t protocol, bool incoming)
+                {
+                    filter.set_protocol(protocol).set_action(ndisapi::action_t::redirect)
+                        .set_direction(incoming ? ndisapi::direction_t::in : ndisapi::direction_t::out);
+                    if (incoming) filter.set_source_port(std::make_pair(uint16_t(53), uint16_t(53)));
+                    else filter.set_dest_port(std::make_pair(uint16_t(53), uint16_t(53)));
+                    return static_filters_.add_filter_front(filter);
+                };
+                for (const bool incoming : { false, true })
+                    for (const uint8_t protocol : { uint8_t(IPPROTO_UDP), uint8_t(IPPROTO_TCP) })
+                        if (!add_observer(ndisapi::filter<net::ip_address_v4>{}, protocol, incoming) ||
+                            !add_observer(ndisapi::filter<net::ip_address_v6>{}, protocol, incoming))
+                        { remove_dns_filters(); return false; }
+            }
+
             for (const auto& spec : plan_dns_filters(mode, listeners))
             {
                 const auto protocol = static_cast<uint8_t>(spec.transport == dns_transport::tcp ? IPPROTO_TCP : IPPROTO_UDP);
@@ -3162,6 +3274,7 @@ namespace proxy
                 const bool translated = udp_redirect_->process_server_to_client_packet(buffer);
                 if (decide_listener_reply(translated) == listener_reply_action::revert)
                 {
+                    observe_dns_packet(buffer, false);
                     log_packet_to_pcap(buffer);
                     return packet_filter::packet_action{ packet_filter::packet_action::action_type::revert };
                 }
@@ -3217,8 +3330,9 @@ namespace proxy
             }
 
             // Excluded or bypassing owners pass; a selection of none marks the owner as bypassing.
-            const auto proxy_lookup = route_owner<owner_transport::udp, owner_family::ipv4>(*process,
-                [&] { return get_proxy_port<owner_transport::udp, owner_family::ipv4>(process); });
+            const auto proxy_lookup = get_flow_proxy_port<owner_transport::udp, owner_family::ipv4>(process,
+                net::ip_address_v4{ ip_header->ip_src }, net::ip_address_v4{ ip_header->ip_dst },
+                ntohs(udp_header->th_sport), ntohs(udp_header->th_dport));
 
             if (proxy_lookup.action == proxy_port_action::proxy)
             {
@@ -3359,8 +3473,9 @@ namespace proxy
             }
 
             // Excluded or bypassing owners pass; a selection of none marks the owner as bypassing.
-            const auto proxy_lookup = route_owner<owner_transport::tcp, owner_family::ipv4>(*process,
-                [&] { return get_proxy_port<owner_transport::tcp, owner_family::ipv4>(process); });
+            const auto proxy_lookup = get_flow_proxy_port<owner_transport::tcp, owner_family::ipv4>(process,
+                net::ip_address_v4{ ip_header->ip_src }, net::ip_address_v4{ ip_header->ip_dst },
+                ntohs(tcp_header->th_sport), ntohs(tcp_header->th_dport), tcp_header->th_flags, ntohl(tcp_header->th_seq));
 
             if (proxy_lookup.action == proxy_port_action::proxy)
             {
@@ -3537,6 +3652,7 @@ namespace proxy
                 const bool translated = udp_redirect_v6_->process_server_to_client_packet(buffer);
                 if (decide_listener_reply(translated) == listener_reply_action::revert)
                 {
+                    observe_dns_packet(buffer, false);
                     log_packet_to_pcap(buffer);
                     return packet_filter::packet_action{ packet_filter::packet_action::action_type::revert };
                 }
@@ -3585,8 +3701,9 @@ namespace proxy
             }
 
             // Excluded or bypassing owners pass; a selection of none marks the owner as bypassing.
-            const auto proxy_lookup = route_owner<owner_transport::udp, owner_family::ipv6>(*process,
-                [&] { return get_proxy_port<owner_transport::udp, owner_family::ipv6>(process); });
+            const auto proxy_lookup = get_flow_proxy_port<owner_transport::udp, owner_family::ipv6>(process,
+                net::ip_address_v6{ ip_header->ip6_src }, net::ip_address_v6{ ip_header->ip6_dst },
+                ntohs(udp_header->th_sport), ntohs(udp_header->th_dport));
 
             if (proxy_lookup.action == proxy_port_action::proxy)
             {
@@ -3704,8 +3821,9 @@ namespace proxy
             }
 
             // Excluded or bypassing owners pass; a selection of none marks the owner as bypassing.
-            const auto proxy_lookup = route_owner<owner_transport::tcp, owner_family::ipv6>(*process,
-                [&] { return get_proxy_port<owner_transport::tcp, owner_family::ipv6>(process); });
+            const auto proxy_lookup = get_flow_proxy_port<owner_transport::tcp, owner_family::ipv6>(process,
+                net::ip_address_v6{ ip_header->ip6_src }, net::ip_address_v6{ ip_header->ip6_dst },
+                ntohs(tcp_header->th_sport), ntohs(tcp_header->th_dport), tcp_header->th_flags, ntohl(tcp_header->th_seq));
 
             if (proxy_lookup.action == proxy_port_action::proxy)
             {

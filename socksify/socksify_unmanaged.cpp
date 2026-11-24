@@ -362,6 +362,13 @@ LONG_PTR socksify_unmanaged::add_socks5_proxy(
         tls_allow_invalid_certificate);
 }
 
+// Domain names are normalized by the managed configuration layer.
+bool socksify_unmanaged::set_proxy_domains(LONG_PTR proxy_id, const std::vector<std::string>& domains,
+    const std::vector<std::string>& suffixes) const
+{
+    return proxy_->set_proxy_domains(static_cast<size_t>(proxy_id), proxy::domain_patterns{ domains, suffixes });
+}
+
 /**
  * @brief Associates a process name with a specific proxy.
  * @param process_name The process name to associate.

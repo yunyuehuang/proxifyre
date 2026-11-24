@@ -207,6 +207,8 @@ namespace ProxiFyreUI.Forms
                     FormatTransport(rule?.Socks5Transport),
                     FormatValues(rule?.SupportedProtocols, "TCP, UDP (default)"),
                     FormatValues(rule?.SupportedAddressFamilies, "IPv4, IPv6 (default)"),
+                    !DomainRules.HasConditions(rule) ? "All destinations" : string.Join(", ",
+                        (rule.Domains ?? new List<string>()).Concat((rule.DomainSuffixes ?? new List<string>()).Select(name => "." + name))),
                     string.Join("; ", warnings));
                 routingGrid.Rows[rowIndex].Tag = index;
                 if (warnings.Length > 0)

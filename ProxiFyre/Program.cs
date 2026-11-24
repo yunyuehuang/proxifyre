@@ -150,6 +150,11 @@ namespace ProxiFyre
 
                 proxyHandles[ruleIndex] = proxy;
 
+                if (!_socksify.SetProxyDomains(proxy,
+                    (DomainRules.Normalize(appSettings.Domains, false) ?? new System.Collections.Generic.List<string>()).ToArray(),
+                    (DomainRules.Normalize(appSettings.DomainSuffixes, true) ?? new System.Collections.Generic.List<string>()).ToArray()))
+                    throw new InvalidOperationException("Could not configure domain conditions for proxy rule " + (ruleIndex + 1) + ".");
+
                 var protocols = appSettings.SupportedProtocols != null && appSettings.SupportedProtocols.Count > 0
                     ? string.Join(", ", appSettings.SupportedProtocols)
                     : "TCP, UDP";

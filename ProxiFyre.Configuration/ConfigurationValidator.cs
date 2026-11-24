@@ -180,9 +180,28 @@ namespace ProxiFyre.Configuration
                 issues);
 
             ValidateApplications(rule.AppNames, prefix, index, issues);
+            ValidateDomains(rule.Domains, false, prefix + ".domains", index, issues);
+            ValidateDomains(rule.DomainSuffixes, true, prefix + ".domainSuffixes", index, issues);
             ValidateProtocols(rule.SupportedProtocols, prefix, index, issues);
             ValidateAddressFamilies(rule.SupportedAddressFamilies, prefix, index, issues);
             ValidateTransportAndTls(rule, prefix, index, issues);
+        }
+
+        private static void ValidateDomains(IList<string> names, bool suffix, string path, int? index,
+            ICollection<ValidationIssue> issues)
+        {
+            if (names == null) return;
+            if (names.Count > 256)
+                issues.Add(Error("DOMAIN_LIMIT", "A domain condition list can contain at most 256 entries.", path, index));
+            for (var item = 0; item < names.Count; item++)
+            {
+                string normalized;
+                if (!DomainRules.TryNormalize(names[item], suffix, out normalized))
+                    issues.Add(Error("DOMAIN_INVALID", suffix
+                        ? "Enter a domain suffix such as example.com, without a scheme, port or path."
+                        : "Enter an exact domain such as store.example.com, without a wildcard, scheme, port or path.",
+                        path + "[" + item + "]", index));
+            }
         }
 
         private static void ValidateCredentialLength(
@@ -410,7 +429,7 @@ namespace ProxiFyre.Configuration
                 if (rule != null && rule.AppNames != null && rule.AppNames.Contains(string.Empty))
                 {
                     catchAllRules.Add(index);
-                    if (rules.Skip(index + 1).Any(later => ProtocolsOverlap(rule, later)))
+                    if (rules.Skip(index + 1).Any(later => ProtocolsOverlap(rule, later) && DomainRules.Overlap(rule, later)))
                     {
                         issues.Add(Warning(
                             "CATCH_ALL_NOT_LAST",
@@ -424,7 +443,8 @@ namespace ProxiFyre.Configuration
             if (catchAllRules.Count > 1)
             {
                 foreach (var index in catchAllRules.Skip(1).Where(index =>
-                    catchAllRules.Any(earlier => earlier < index && ProtocolsOverlap(rules[earlier], rules[index]))))
+                    catchAllRules.Any(earlier => earlier < index && ProtocolsOverlap(rules[earlier], rules[index]) &&
+                        DomainRules.Overlap(rules[earlier], rules[index]))))
                 {
                     issues.Add(Warning(
                         "MULTIPLE_CATCH_ALL_RULES",
@@ -453,7 +473,8 @@ namespace ProxiFyre.Configuration
                         continue;
 
                     var shadowingMatch = previous.FirstOrDefault(item =>
-                        ProtocolsOverlap(rules[item.RuleIndex], rule) && MatchesOverlap(item.Value, value));
+                        ProtocolsOverlap(rules[item.RuleIndex], rule) && DomainRules.Overlap(rules[item.RuleIndex], rule) &&
+                        MatchesOverlap(item.Value, value));
                     if (shadowingMatch != null)
                     {
                         issues.Add(Warning(

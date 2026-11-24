@@ -74,6 +74,7 @@
     <Compile Include="ConfigurationValidator.cs" />
     <Compile Include="ConfigurationValueParser.cs" />
     <Compile Include="DnsConfiguration.cs" />
+    <Compile Include="DomainRules.cs" />
     <Compile Include="EngineCommandLinePolicy.cs" />
     <Compile Include="EndpointParser.cs" />
     <Compile Include="LogMessageLevelParser.cs" />

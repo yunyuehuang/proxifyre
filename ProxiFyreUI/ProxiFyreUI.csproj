@@ -78,6 +78,7 @@
     <Compile Include="Forms\MainForm.Designer.cs"><DependentUpon>MainForm.cs</DependentUpon></Compile>
     <Compile Include="Forms\ProcessPickerForm.cs"><SubType>Form</SubType></Compile>
     <Compile Include="Forms\ProcessPickerForm.Designer.cs"><DependentUpon>ProcessPickerForm.cs</DependentUpon></Compile>
+    <Compile Include="Forms\DomainRuleEditorForm.cs"><SubType>Form</SubType></Compile>
     <Compile Include="Forms\ProxyRuleEditorForm.cs"><SubType>Form</SubType></Compile>
     <Compile Include="Forms\ProxyRuleEditorForm.Designer.cs"><DependentUpon>ProxyRuleEditorForm.cs</DependentUpon></Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />

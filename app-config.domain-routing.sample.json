@@ -1,0 +1,28 @@
+{
+  "logLevel": "Debug",
+  "bypassLan": true,
+  "proxies": [
+    {
+      "appNames": ["steam.exe", "steamwebhelper.exe"],
+      "domains": ["store.steampowered.com"],
+      "domainSuffixes": ["steamcontent.com"],
+      "socks5ProxyEndpoint": "127.0.0.1:7899",
+      "supportedProtocols": ["TCP", "UDP"],
+      "supportedAddressFamilies": ["IPv4", "IPv6"]
+    },
+    {
+      "appNames": ["steam.exe", "steamwebhelper.exe"],
+      "socks5ProxyEndpoint": "127.0.0.1:7897",
+      "supportedProtocols": ["TCP"],
+      "supportedAddressFamilies": ["IPv4", "IPv6"]
+    },
+    {
+      "appNames": ["steam.exe", "steamwebhelper.exe"],
+      "socks5ProxyEndpoint": "127.0.0.1:7898",
+      "supportedProtocols": ["UDP"],
+      "supportedAddressFamilies": ["IPv4", "IPv6"]
+    }
+  ],
+  "excludes": ["verge-mihomo.exe"],
+  "dns": { "mode": "Direct" }
+}

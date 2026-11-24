@@ -67,6 +67,7 @@ namespace proxy
         bool transport_supported{};             ///< the proxy carries this transport
         bool family_supported{};                ///< the proxy accepts destinations of this family
         std::optional<uint16_t> listener_port;  ///< local listener for this transport and family
+        bool destination_supported{ true };   ///< domain conditions match, or no such conditions
     };
 
     /**
@@ -192,7 +193,7 @@ namespace proxy
             {
                 const proxy_route_target target = target_of(proxy_id);
 
-                if (!target.transport_supported)
+                if (!target.transport_supported || !target.destination_supported)
                     continue;
 
                 if (!target.family_supported)

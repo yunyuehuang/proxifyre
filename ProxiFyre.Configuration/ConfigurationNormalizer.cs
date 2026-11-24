@@ -127,6 +127,8 @@ namespace ProxiFyre.Configuration
             {
                 Id = EmptyToNull(rule.Id),
                 AppNames = appNames,
+                Domains = DomainRules.Normalize(rule.Domains, false),
+                DomainSuffixes = DomainRules.Normalize(rule.DomainSuffixes, true),
                 Socks5ProxyEndpoint = rule.Socks5ProxyEndpoint == null ? null : rule.Socks5ProxyEndpoint.Trim(),
                 Username = rule.Username,
                 Password = rule.Password,

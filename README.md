@@ -135,6 +135,10 @@ Set `socks5Transport` to `"TLS"` to protect the SOCKS5 TCP connection and UDP `A
 - [Protected manual ZIP staging](docs/zip-staging.md)
 - [Sample configuration](app-config.sample.json)
 
+## Local customization
+
+This checkout maintains separate TCP and UDP proxy selection for the same application on `feature/split-tcp-udp-proxies`, based on upstream `v2.7.0`. See [upstream synchronization instructions](docs/upstream-sync.md) for the official remote, local commit and merge workflow.
+
 ## Building from source
 
 Development requires Visual Studio 2022 with the C++ and .NET desktop workloads, the v143 toolset, the .NET Framework 4.7.2 targeting pack, NuGet CLI, PowerShell 7, a .NET SDK, and the repository's vcpkg dependencies.

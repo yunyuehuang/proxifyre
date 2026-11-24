@@ -42,7 +42,7 @@ The live configuration is always `app-config.json` beside the resolved engine. G
 
 ## Editing rules
 
-Routing rules are evaluated from top to bottom, and the first match wins. Use **Move Up** and **Move Down** to change the serialized order. The dedicated catch-all option is shown as **All unmatched applications** and is serialized as one explicit empty string in `appNames`. Put it last: an earlier catch-all shadows every later rule, and the validator reports that condition immediately.
+Routing rules are evaluated from top to bottom; the first application match supporting the current TCP/UDP protocol wins. Protocol mismatches continue to later rules, allowing the same application to use separate TCP and UDP proxies. Use **Move Up** and **Move Down** to change the serialized order. The dedicated catch-all option is shown as **All unmatched applications** and is serialized as one explicit empty string in `appNames`. Put it after specific rules for the protocols it supports; the validator warns about overlapping protocols.
 
 Application entries without a slash match an executable name. Entries containing a slash or backslash match against the full path. Exclusions are separate from routing entries, take priority over catch-all routing, and deliberately use permissive process-name or path-substring matching. Exclude the carrier process of another VPN or tunnel when necessary to avoid recursive routing.
 

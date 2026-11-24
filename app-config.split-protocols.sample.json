@@ -1,0 +1,19 @@
+{
+  "logLevel": "Info",
+  "bypassLan": true,
+  "proxies": [
+    {
+      "appNames": ["steam.exe", "steamwebhelper.exe"],
+      "socks5ProxyEndpoint": "127.0.0.1:7897",
+      "supportedProtocols": ["TCP"],
+      "supportedAddressFamilies": ["IPv4", "IPv6"]
+    },
+    {
+      "appNames": ["steam.exe", "steamwebhelper.exe"],
+      "socks5ProxyEndpoint": "127.0.0.1:7898",
+      "supportedProtocols": ["UDP"],
+      "supportedAddressFamilies": ["IPv4", "IPv6"]
+    }
+  ],
+  "excludes": ["verge-mihomo.exe"]
+}

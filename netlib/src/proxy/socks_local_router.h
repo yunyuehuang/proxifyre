@@ -2248,7 +2248,7 @@ namespace proxy
         /**
          * @brief Selects the proxy for @p process's @p Transport traffic of @p Family.
          *
-         * The first configured application pattern that matches the process decides (see
+         * The first configured application pattern matching the process and transport decides (see
          * match_owner_to_app() for the matching and exclusion semantics); see
          * select_proxy_port() for the outcomes.
          */

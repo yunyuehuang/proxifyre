@@ -85,7 +85,7 @@ The GUI edits `app-config.json` beside `ProxiFyre.exe`. A minimal configuration 
 }
 ```
 
-Rules are evaluated from top to bottom and the first match wins. Put the catch-all rule (`"appNames": [""]`) last; exclusions take priority over every routing rule. Unsupported destination address families are blocked rather than allowed to leak directly.
+Rules are evaluated from top to bottom; the first application match supporting the current TCP/UDP protocol wins. Protocol mismatches continue to later rules, so one application can use separate TCP and UDP proxies (see `app-config.split-protocols.sample.json`). Put catch-all rules (`"appNames": [""]`) after specific rules for their supported protocols; exclusions take priority over every routing rule. Unsupported destination address families are blocked rather than allowed to leak directly.
 
 DNS (UDP/TCP port 53) bypasses the proxies by default. To prevent DNS leaks, give a rule an `id` and add a global DNS policy that sends all DNS through that proxy, optionally to a resolver the proxy can reach:
 

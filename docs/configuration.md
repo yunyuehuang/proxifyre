@@ -62,7 +62,7 @@ Process ownership lookup is best effort for a standard user. ProxiFyre can route
 | --- | --- |
 | `logLevel` | `Error`, `Warning`, `Info`, `Debug`, or `All`. Missing or unsupported values fall back to `Info`. |
 | `bypassLan` | When `true`, supported local IPv4 ranges remain direct. Default: `false`. |
-| `proxies` | One or more ordered routing rules. The first matching rule wins. |
+| `proxies` | One or more ordered routing rules. The first application match supporting the current TCP/UDP protocol wins. |
 | `excludes` | Process names or paths that always bypass proxy routing. |
 | `dns` | Optional global DNS routing. Omitted means `Direct`. See [DNS routing](#dns-routing). |
 
@@ -83,14 +83,16 @@ Process ownership lookup is best effort for a standard user. ProxiFyre can route
 
 ## Application matching and rule order
 
-Routing rules are evaluated from top to bottom. The first matching rule wins.
+Routing rules are evaluated from top to bottom. A rule must match the application and support the current TCP/UDP protocol. A protocol mismatch continues to the next rule; the first match supporting that protocol wins. If none supports it, the traffic remains direct.
 
 - A value containing neither `/` nor `\` matches the whole executable name, case-insensitively. `firefox` and `firefox.exe` match `firefox.exe`; `firefox` does not match `NewFirefox.exe`.
 - A value containing `/` or `\` is matched as a substring of the process's full path. This is useful for applications installed beneath a variable package directory.
-- An explicit empty string (`""`) matches every application not already matched or excluded. Put this catch-all rule last because it shadows every later rule.
+- An explicit empty string (`""`) matches every application not already matched or excluded for that protocol. Put catch-all rules after specific rules for the protocols they support.
 - Null and whitespace-only entries are ignored; spaces are not a catch-all.
 
 The validator warns about duplicate, overlapping, or shadowed matches without changing rule order.
+
+The same application can use different SOCKS5 endpoints for TCP and UDP. For example, configure one `steam.exe` / `steamwebhelper.exe` rule with `supportedProtocols: ["TCP"]`, then another with `supportedProtocols: ["UDP"]`. See `app-config.split-protocols.sample.json`; its endpoints are examples and must be changed to working proxies. DNS on port 53 still follows the global DNS policy. A family mismatch or missing listener on a matching rule still blocks traffic rather than falling through.
 
 At least one proxy rule is required. A rule with no meaningful `appNames` entry is retained for compatibility but never matches a process, and validation reports a warning.
 

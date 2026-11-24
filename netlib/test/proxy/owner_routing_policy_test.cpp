@@ -605,6 +605,38 @@ namespace
         expect_route(route(config, h().owner(1)), proxy_port_action::proxy, listener_port(config.proxies[0]));
     }
 
+    TEST_P(OwnerRoutingConfigurationChangeTest, ProtocolSpecificRulesSelectDifferentProxiesInEitherOrder)
+    {
+        os().images[3011] = image(L"STEAM.EXE");
+        h().add_row(3011, 0, 0);
+        ASSERT_TRUE(h().refresh());
+
+        for (const bool tcp_first : { true, false })
+        {
+            SCOPED_TRACE(tcp_first);
+            routing_config config;
+            proxy_offer tcp_proxy;
+            tcp_proxy.udp = false;
+            proxy_offer udp_proxy;
+            udp_proxy.tcp = false;
+            udp_proxy.udp4_port = 42002;
+            udp_proxy.udp6_port = 42004;
+            config.proxies = tcp_first ? std::vector<proxy_offer>{ tcp_proxy, udp_proxy }
+                                      : std::vector<proxy_offer>{ udp_proxy, tcp_proxy };
+            ASSERT_TRUE(proxy::associate_process_name_pattern(config.proxy_to_names, 0, 2, L"steam.exe"));
+            ASSERT_TRUE(proxy::associate_process_name_pattern(config.proxy_to_names, 1, 2, L"steam.exe"));
+
+            const auto owner = h().owner(0);
+            ASSERT_TRUE(owner);
+            const auto expected = listener_port(h().tcp() ? tcp_proxy : udp_proxy);
+            for (int packet = 0; packet < 3; ++packet)
+            {
+                expect_route(route(config, owner), proxy_port_action::proxy, expected);
+                EXPECT_FALSE(bypassed(owner));
+            }
+        }
+    }
+
     TEST_P(OwnerRoutingConfigurationChangeTest, LaterAssociationDoesNotOvertakeTheFirstMatch)
     {
         // The catch-all is associated first; a later, more specific association for the same

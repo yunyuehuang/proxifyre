@@ -410,11 +410,11 @@ namespace ProxiFyre.Configuration
                 if (rule != null && rule.AppNames != null && rule.AppNames.Contains(string.Empty))
                 {
                     catchAllRules.Add(index);
-                    if (index < rules.Count - 1)
+                    if (rules.Skip(index + 1).Any(later => ProtocolsOverlap(rule, later)))
                     {
                         issues.Add(Warning(
                             "CATCH_ALL_NOT_LAST",
-                            "This catch-all rule shadows every rule after it because the first matching proxy wins. Move it last.",
+                            "This catch-all rule overlaps later rules for a shared protocol. Put it after specific rules for that protocol.",
                             RulePath(index) + ".appNames",
                             index));
                     }
@@ -423,11 +423,12 @@ namespace ProxiFyre.Configuration
 
             if (catchAllRules.Count > 1)
             {
-                foreach (var index in catchAllRules.Skip(1))
+                foreach (var index in catchAllRules.Skip(1).Where(index =>
+                    catchAllRules.Any(earlier => earlier < index && ProtocolsOverlap(rules[earlier], rules[index]))))
                 {
                     issues.Add(Warning(
                         "MULTIPLE_CATCH_ALL_RULES",
-                        "Multiple catch-all rules are configured; only the first effective catch-all can be reached.",
+                        "Catch-all rules share a protocol; the earlier catch-all wins for that protocol.",
                         RulePath(index) + ".appNames",
                         index));
                 }
@@ -451,13 +452,14 @@ namespace ProxiFyre.Configuration
                     if (string.IsNullOrWhiteSpace(value))
                         continue;
 
-                    var shadowingMatch = previous.FirstOrDefault(item => MatchesOverlap(item.Value, value));
+                    var shadowingMatch = previous.FirstOrDefault(item =>
+                        ProtocolsOverlap(rules[item.RuleIndex], rule) && MatchesOverlap(item.Value, value));
                     if (shadowingMatch != null)
                     {
                         issues.Add(Warning(
                             "APP_MATCH_SHADOWED",
                             "This application match overlaps an earlier match in rule " +
-                            (shadowingMatch.RuleIndex + 1) + "; the earlier rule wins.",
+                            (shadowingMatch.RuleIndex + 1) + "; the earlier rule wins for their shared protocols.",
                             RulePath(ruleIndex) + ".appNames[" + appIndex + "]",
                             ruleIndex));
                     }
@@ -468,6 +470,22 @@ namespace ProxiFyre.Configuration
                 // Duplicate matches within one rule are diagnosed separately by
                 // ValidateApplications. Only prior rules can win because of ordering.
                 previous.AddRange(currentRuleMatches);
+            }
+        }
+
+        private static bool ProtocolsOverlap(ProxyRule left, ProxyRule right)
+        {
+            if (left == null || right == null)
+                return false;
+            try
+            {
+                return (ConfigurationValueParser.GetProtocols(left.SupportedProtocols) &
+                        ConfigurationValueParser.GetProtocols(right.SupportedProtocols)) != ProxyProtocolSelection.None;
+            }
+            catch (InvalidOperationException)
+            {
+                // Invalid protocol tokens already have a validation error; ordering checks must not throw.
+                return false;
             }
         }
 

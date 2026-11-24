@@ -72,7 +72,7 @@ namespace proxy
     /**
      * @brief Records the association socks_local_router::associate_process_name_to_proxy makes:
      *        @p proxy_id -> the upper-cased @p process_name pattern, appended after the patterns
-     *        already configured (select_proxy_port() takes the first match).
+     *        already configured (select_proxy_port() takes the first match supporting the transport).
      *
      * The caller holds the router's configuration lock. The association applies to every owner
      * routed afterwards; an owner object that already cached a bypass decision for a transport
@@ -175,13 +175,12 @@ namespace proxy
     }
 
     /**
-     * @brief Selects the proxy for an owner: the first configured pattern that matches decides.
+     * @brief Selects the first application match that supports the requested transport.
      *
      * @param target_of size_t proxy index -> proxy_route_target for the transport and family
      *        being routed.
      * @return proxy with the listener port; block when the matched proxy cannot carry the
-     *         family or has no listener; none when nothing matches or the matched proxy does
-     *         not carry the transport.
+     *         family or has no listener; none when no application match supports the transport.
      */
     template <class TargetOf>
     [[nodiscard]] proxy_port_result select_proxy_port(const owner_match_rules& rules,
@@ -194,7 +193,7 @@ namespace proxy
                 const proxy_route_target target = target_of(proxy_id);
 
                 if (!target.transport_supported)
-                    return {};
+                    continue;
 
                 if (!target.family_supported)
                     return { proxy_port_action::block, 0 };

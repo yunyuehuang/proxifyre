@@ -28,6 +28,11 @@ if [[ "${SANITIZE:-0}" == "1" ]]; then
   flags+=(-fsanitize=address,undefined -fno-sanitize=alignment -fno-omit-frame-pointer)
 fi
 
+# Compile the production application/protocol selection with metadata-only owners.
+# This regression test needs only the standard library, not a driver or Windows SDK.
+"$cxx" "${flags[@]}" "$here/protocol_routing_policy_test.cpp" -o "$out/protocol-routing-tests"
+"$out/protocol-routing-tests"
+
 # Product checksum routines, extracted verbatim so the packet tests verify the shipped code.
 ndisapi_cpp="$repo/external/ndisapi/ndisapi/ndisapi.cpp"
 if [[ ! -f "$ndisapi_cpp" ]]; then

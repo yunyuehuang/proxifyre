@@ -179,6 +179,60 @@ namespace ProxiFyre.Tests
             HasIssue(_validator.Validate(configuration), "APP_MATCH_SHADOWED", ValidationSeverity.Warning);
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void SeparateProtocolsDoNotReportApplicationOrCatchAllShadowing(bool catchAll)
+        {
+            var configuration = TestModels.ValidConfiguration();
+            var tcp = configuration.Proxies[0];
+            tcp.AppNames = new List<string> { catchAll ? string.Empty : "steam.exe" };
+            tcp.SupportedProtocols = new List<string> { "TCP" };
+            var udp = TestModels.ValidRule();
+            udp.AppNames = new List<string> { catchAll ? string.Empty : "steam.exe" };
+            udp.SupportedProtocols = new List<string> { "UDP" };
+            configuration.Proxies.Add(udp);
+
+            foreach (var reverse in new[] { false, true })
+            {
+                if (reverse) configuration.Proxies.Reverse();
+                var result = _validator.Validate(configuration);
+                Assert.That(result.IsValid, Is.True);
+                NoIssueWithPrefix(result, "APP_MATCH_SHADOWED");
+                NoIssueWithPrefix(result, "CATCH_ALL_NOT_LAST");
+                NoIssueWithPrefix(result, "MULTIPLE_CATCH_ALL_RULES");
+            }
+        }
+
+        [TestCase(null)]
+        [TestCase("TCP")]
+        public void OverlappingProtocolsStillReportApplicationShadowing(string earlierProtocol)
+        {
+            var configuration = TestModels.ValidConfiguration();
+            configuration.Proxies[0].AppNames = new List<string> { "steam.exe" };
+            configuration.Proxies[0].SupportedProtocols = earlierProtocol == null
+                ? null : new List<string> { earlierProtocol };
+            var second = TestModels.ValidRule();
+            second.AppNames = new List<string> { "steam.exe" };
+            second.SupportedProtocols = new List<string> { "TCP" };
+            configuration.Proxies.Add(second);
+            HasIssue(_validator.Validate(configuration), "APP_MATCH_SHADOWED", ValidationSeverity.Warning);
+        }
+
+        [Test]
+        public void InvalidProtocolsDoNotThrowDuringOrderingValidation()
+        {
+            var configuration = TestModels.ValidConfiguration();
+            configuration.Proxies[0].AppNames = new List<string> { string.Empty, "steam.exe" };
+            configuration.Proxies[0].SupportedProtocols = new List<string> { "invalid" };
+            var second = TestModels.ValidRule();
+            second.AppNames = new List<string> { string.Empty, "steam.exe" };
+            configuration.Proxies.Add(second);
+            var result = _validator.Validate(configuration);
+            Assert.That(result.IsValid, Is.False);
+            Assert.That(result.Issues.Any(issue => issue.Severity == ValidationSeverity.Error &&
+                issue.Path.StartsWith("proxies[0].supportedProtocols")), Is.True);
+        }
+
         [Test]
         public void OmittedProtocolsMeanBothAndUnknownProtocolsAreErrors()
         {

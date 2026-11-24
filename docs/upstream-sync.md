@@ -4,12 +4,28 @@
 
 - 正式源码仓库：当前工作区的 `src/ProxiFyre`；后续代码修改和 Git 操作均在此目录进行。
 - 官方远程：`upstream`，地址为 `https://github.com/wiresock/proxifyre.git`。
+- 个人推送远程：`origin`，本地配置地址为 `https://github.com/yunyuehuang/proxifyre.git`；首次推送前，需要在该账号下创建对应 Fork。
 - 官方基线：`v2.7.0`，提交 `c1757d8e60e8a85e526a638026a05e97d167e03a`。仓库保留官方完整历史，并非独立初始化的源码快照。
 - 本地开发分支：`feature/split-tcp-udp-proxies`。
 - TCP/UDP 分开选择代理的提交：`5f7ab90`。
 - `external/ndisapi` 继续作为上游 Git 子模块管理；按主仓库记录的提交更新。
 
 `downloads/proxifyre-source` 是早期源码参考目录。正式代码以本仓库为准；先前生成的补丁 ZIP 和离线安装包也不会随着 Git 提交自动更新。
+
+## 首次保存分支到个人远程
+
+`upstream` 是官方仓库，当前个人账号没有写权限；推送自定义分支使用 `origin`。本地 `remote.pushDefault` 和开发分支的 `pushRemote` 已设为 `origin`，并已移除开发分支对 `upstream/main` 的跟踪。
+
+1. 登录 GitHub，打开 <https://github.com/wiresock/proxifyre/fork>，在 `yunyuehuang` 账号下创建名为 `proxifyre` 的 Fork。
+2. 在 Git 客户端中选择远程 `origin` 推送，或在本仓库运行：
+
+```powershell
+git push --set-upstream origin feature/split-tcp-udp-proxies
+```
+
+首次推送成功后，开发分支跟踪 `origin/feature/split-tcp-udp-proxies`。官方更新仍通过下节的 `fetch upstream` 和 `merge upstream/main` 合入。
+
+若个人仓库采用其他地址，先运行 `git remote set-url origin <个人仓库地址>`，再推送。命令行 Git 可能需要单独完成 GitHub 登录；图形客户端中已有的登录不一定能被命令行凭据助手复用。
 
 ## 合并官方后续更新
 
